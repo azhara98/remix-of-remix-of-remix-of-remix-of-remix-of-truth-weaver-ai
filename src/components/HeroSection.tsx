@@ -1,20 +1,31 @@
 import { Button } from "@/components/ui/button";
 import { Search, BrainCircuit, Sparkles, ArrowRight, Clock, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AnalyzeOptionsPopover from "./AnalyzeOptionsPopover";
 import VerificationProgress from "./VerificationProgress";
 import AnalysisResultCard from "./AnalysisResultCard";
 import { useNewsAnalysis } from "@/hooks/useNewsAnalysis";
+import { useSearchHistory } from "@/contexts/SearchHistoryContext";
 
 const HeroSection = () => {
   const navigate = useNavigate();
   const [inputValue, setInputValue] = useState("");
   const { isAnalyzing, steps, currentStep, result, analyze, reset } = useNewsAnalysis();
+  const { selectedQuery, setSelectedQuery, addToHistory } = useSearchHistory();
+
+  // Auto-fill input when a history item is selected
+  useEffect(() => {
+    if (selectedQuery) {
+      setInputValue(selectedQuery);
+      setSelectedQuery(null);
+    }
+  }, [selectedQuery, setSelectedQuery]);
 
   const handleAnalyze = () => {
     if (inputValue.trim()) {
+      addToHistory(inputValue);
       analyze(inputValue);
     }
   };
