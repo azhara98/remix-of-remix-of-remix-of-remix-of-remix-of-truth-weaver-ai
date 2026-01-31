@@ -4,14 +4,31 @@ import Logo from "./Logo";
 import { Menu, X, Settings } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-
+import RecentSearchesPanel from "./RecentSearchesPanel";
+import { useSearchHistory } from "@/contexts/SearchHistoryContext";
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { setSelectedQuery } = useSearchHistory();
   
   // Simulate logged in state - in production this would come from auth context
   const [isLoggedIn] = useState(false);
+
+  const handleHistorySelect = (query: string) => {
+    // Navigate to home and set the selected query
+    if (location.pathname !== "/") {
+      navigate("/");
+    }
+    setSelectedQuery(query);
+  };
+
+  const handleNewProject = () => {
+    if (location.pathname !== "/") {
+      navigate("/");
+    }
+    setSelectedQuery(null);
+  };
 
   const navLinks = [
     { label: "How it Works", href: "#how-it-works" },
@@ -53,6 +70,10 @@ const Header = () => {
           </nav>
 
           <div className="hidden md:flex items-center gap-2">
+            <RecentSearchesPanel 
+              onSelectHistory={handleHistorySelect}
+              onNewProject={handleNewProject}
+            />
             <Button 
               variant="ghost" 
               size="icon"
@@ -82,6 +103,10 @@ const Header = () => {
 
           {/* Mobile Menu Button */}
           <div className="flex md:hidden items-center gap-2">
+            <RecentSearchesPanel 
+              onSelectHistory={handleHistorySelect}
+              onNewProject={handleNewProject}
+            />
             <Button 
               variant="ghost" 
               size="icon"
