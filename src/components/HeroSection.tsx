@@ -1,36 +1,21 @@
 import { Button } from "@/components/ui/button";
-import { Search, BrainCircuit, Sparkles, ArrowRight, CheckCircle, XCircle, AlertTriangle, Eye, Clock } from "lucide-react";
+import { Search, BrainCircuit, Sparkles, ArrowRight, Clock, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AnalyzeOptionsPopover from "./AnalyzeOptionsPopover";
-
-type AnalysisResult = {
-  status: "real" | "fake" | "uncertain";
-  confidence: number;
-  message: string;
-} | null;
+import VerificationProgress from "./VerificationProgress";
+import AnalysisResultCard from "./AnalysisResultCard";
+import { useNewsAnalysis } from "@/hooks/useNewsAnalysis";
 
 const HeroSection = () => {
   const navigate = useNavigate();
   const [inputValue, setInputValue] = useState("");
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [result, setResult] = useState<AnalysisResult>(null);
+  const { isAnalyzing, steps, currentStep, result, analyze, reset } = useNewsAnalysis();
 
   const handleAnalyze = () => {
     if (inputValue.trim()) {
-      setIsAnalyzing(true);
-      setResult(null);
-      // Simulate analysis - in real app this would call an API
-      setTimeout(() => {
-        setIsAnalyzing(false);
-        // For demo, show as "real" news with green indicator
-        setResult({
-          status: "real",
-          confidence: 94.7,
-          message: "This content appears to be credible and from reliable sources."
-        });
-      }, 2000);
+      analyze(inputValue);
     }
   };
 
@@ -38,17 +23,19 @@ const HeroSection = () => {
     if (data) {
       setInputValue(`[${type.toUpperCase()}]: ${data}`);
     }
-    // Optionally auto-start analysis
-    // handleAnalyze();
   };
 
   const handleClear = () => {
     setInputValue("");
-    setResult(null);
+    reset();
+  };
+
+  const handleViewDetails = () => {
+    navigate("/results", { state: { result } });
   };
 
   return (
-<section className="relative min-h-screen flex items-center justify-center pt-16 overflow-hidden">
+    <section className="relative min-h-screen flex items-center justify-center pt-16 overflow-hidden">
       {/* Modern Gradient Background with AI Pattern */}
       <div className="absolute inset-0 z-0">
         {/* Base gradient */}
@@ -151,161 +138,124 @@ const HeroSection = () => {
           </p>
 
           {/* Search Input with Options */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="max-w-2xl mx-auto mb-8"
-          >
-            <div className="relative group">
-              {/* Glow effect behind input */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-secondary/40 via-accent/30 to-secondary/40 rounded-3xl blur-xl opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
-              
-              <div className="relative bg-white/95 dark:bg-[hsl(222,47%,11%)]/95 backdrop-blur-xl rounded-2xl p-3 shadow-2xl border border-white/20 dark:border-white/10">
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <div className="flex-1 relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <input
-                      type="text"
-                      placeholder="Paste a news article URL or enter text to analyze..."
-                      value={inputValue}
-                      onChange={(e) => setInputValue(e.target.value)}
-                      className="w-full h-14 pl-12 pr-4 bg-muted/50 rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary/50 text-base transition-all"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <AnalyzeOptionsPopover onOptionSelect={handleOptionSelect} />
-                    <Button
-                      variant="hero"
-                      size="lg"
-                      onClick={handleAnalyze}
-                      disabled={isAnalyzing || !inputValue.trim()}
-                      className="flex-1 sm:flex-none h-14 px-8 text-base font-semibold shadow-lg hover:shadow-xl transition-all"
-                    >
-                      {isAnalyzing ? (
-                        <>
-                          <div className="w-5 h-5 border-2 border-secondary-foreground/30 border-t-secondary-foreground rounded-full animate-spin" />
-                          Analyzing...
-                        </>
-                      ) : (
-                        <>
+          <AnimatePresence mode="wait">
+            {!isAnalyzing && !result && (
+              <motion.div
+                key="input"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ delay: 0.4 }}
+                className="max-w-2xl mx-auto mb-8"
+              >
+                <div className="relative group">
+                  {/* Glow effect behind input */}
+                  <div className="absolute -inset-1 bg-gradient-to-r from-secondary/40 via-accent/30 to-secondary/40 rounded-3xl blur-xl opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
+                  
+                  <div className="relative bg-white/95 dark:bg-[hsl(222,47%,11%)]/95 backdrop-blur-xl rounded-2xl p-3 shadow-2xl border border-white/20 dark:border-white/10">
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <div className="flex-1 relative">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                        <input
+                          type="text"
+                          placeholder="Paste a news article URL or enter text to analyze..."
+                          value={inputValue}
+                          onChange={(e) => setInputValue(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
+                          className="w-full h-14 pl-12 pr-4 bg-muted/50 rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary/50 text-base transition-all"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <AnalyzeOptionsPopover onOptionSelect={handleOptionSelect} />
+                        <Button
+                          variant="hero"
+                          size="lg"
+                          onClick={handleAnalyze}
+                          disabled={!inputValue.trim()}
+                          className="flex-1 sm:flex-none h-14 px-8 text-base font-semibold shadow-lg hover:shadow-xl transition-all"
+                        >
                           Analyze Now
                           <ArrowRight className="w-5 h-5" />
-                        </>
-                      )}
-                    </Button>
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    {/* Quick analysis time indicator */}
+                    <div className="flex items-center justify-center gap-2 mt-3 text-xs text-muted-foreground">
+                      <Clock className="w-3 h-3" />
+                      <span>Average analysis time: 30-45 seconds</span>
+                    </div>
                   </div>
                 </div>
-                
-                {/* Quick analysis time indicator */}
-                <div className="flex items-center justify-center gap-2 mt-3 text-xs text-muted-foreground">
-                  <Clock className="w-3 h-3" />
-                  <span>Average analysis time: 20-30 seconds</span>
-                </div>
-              </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-              {/* Scanning Animation */}
-              {isAnalyzing && (
-                <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
-                  <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-secondary to-transparent animate-scan" />
-                </div>
-              )}
-            </div>
+          {/* Verification Progress */}
+          <AnimatePresence>
+            {isAnalyzing && steps.length > 0 && (
+              <VerificationProgress steps={steps} currentStep={currentStep} />
+            )}
+          </AnimatePresence>
 
-            {/* Analysis Result */}
-            <AnimatePresence>
-              {result && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                  transition={{ duration: 0.3 }}
-                  className={`mt-4 p-4 rounded-xl border ${
-                    result.status === "real"
-                      ? "bg-success/10 border-success/30"
-                      : result.status === "fake"
-                      ? "bg-destructive/10 border-destructive/30"
-                      : "bg-warning/10 border-warning/30"
-                  }`}
+          {/* Analysis Result */}
+          <AnimatePresence>
+            {result && (
+              <AnalysisResultCard
+                result={result}
+                onClear={handleClear}
+                onViewDetails={handleViewDetails}
+              />
+            )}
+          </AnimatePresence>
+
+          {/* Cancel button during analysis */}
+          <AnimatePresence>
+            {isAnalyzing && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="mt-4"
+              >
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClear}
+                  className="text-white/60 hover:text-white hover:bg-white/10"
                 >
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                    {result.status === "real" ? (
-                      <div className="flex items-center justify-center w-12 h-12 rounded-full bg-success/20 flex-shrink-0">
-                        <CheckCircle className="w-7 h-7 text-success" />
-                      </div>
-                    ) : result.status === "fake" ? (
-                      <div className="flex items-center justify-center w-12 h-12 rounded-full bg-destructive/20 flex-shrink-0">
-                        <XCircle className="w-7 h-7 text-destructive" />
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-center w-12 h-12 rounded-full bg-warning/20 flex-shrink-0">
-                        <AlertTriangle className="w-7 h-7 text-warning" />
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className={`font-semibold text-lg ${
-                          result.status === "real"
-                            ? "text-success"
-                            : result.status === "fake"
-                            ? "text-destructive"
-                            : "text-warning"
-                        }`}>
-                          {result.status === "real" ? "Credible News" : result.status === "fake" ? "Fake News Detected" : "Uncertain"}
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          {result.confidence}% confidence
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {result.message}
-                      </p>
-                    </div>
-                    <div className="flex gap-2 w-full sm:w-auto">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => navigate("/results")}
-                        className="gap-1 flex-1 sm:flex-none"
-                      >
-                        <Eye className="w-3 h-3" />
-                        View Details
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleClear}
-                        className="text-muted-foreground hover:text-foreground"
-                      >
-                        Clear
-                      </Button>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
+                  <X className="w-4 h-4 mr-2" />
+                  Cancel Analysis
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          {/* Trust Stats */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
-            className="flex flex-wrap justify-center gap-8 md:gap-16"
-          >
-            {[
-              { value: "99.2%", label: "Detection Accuracy" },
-              { value: "10M+", label: "Articles Analyzed" },
-              { value: "<30s", label: "Analysis Time" },
-            ].map((stat) => (
-              <div key={stat.label} className="text-center">
-                <div className="text-2xl md:text-3xl font-display font-bold text-white">
-                  {stat.value}
-                </div>
-                <div className="text-sm text-white/60">{stat.label}</div>
-              </div>
-            ))}
-          </motion.div>
+          {/* Trust Stats - only show when not analyzing */}
+          <AnimatePresence>
+            {!isAnalyzing && !result && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ delay: 0.6 }}
+                className="flex flex-wrap justify-center gap-8 md:gap-16 mt-8"
+              >
+                {[
+                  { value: "99.2%", label: "Detection Accuracy" },
+                  { value: "10M+", label: "Articles Analyzed" },
+                  { value: "<45s", label: "Analysis Time" },
+                ].map((stat) => (
+                  <div key={stat.label} className="text-center">
+                    <div className="text-2xl md:text-3xl font-display font-bold text-white">
+                      {stat.value}
+                    </div>
+                    <div className="text-sm text-white/60">{stat.label}</div>
+                  </div>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       </div>
     </section>
