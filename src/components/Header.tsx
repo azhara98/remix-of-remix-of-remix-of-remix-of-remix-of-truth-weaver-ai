@@ -6,28 +6,30 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import RecentSearchesPanel from "./RecentSearchesPanel";
 import { useSearchHistory } from "@/contexts/SearchHistoryContext";
+import type { SearchHistoryItem } from "@/contexts/SearchHistoryContext";
+
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { setSelectedQuery } = useSearchHistory();
+  const { setSelectedHistoryItem } = useSearchHistory();
   
   // Simulate logged in state - in production this would come from auth context
   const [isLoggedIn] = useState(false);
 
-  const handleHistorySelect = (query: string) => {
-    // Navigate to home and set the selected query
+  const handleHistorySelect = (item: SearchHistoryItem) => {
+    // Navigate to home and set the selected history item (with stored result)
     if (location.pathname !== "/") {
       navigate("/");
     }
-    setSelectedQuery(query);
+    setSelectedHistoryItem(item);
   };
 
   const handleNewProject = () => {
     if (location.pathname !== "/") {
       navigate("/");
     }
-    setSelectedQuery(null);
+    setSelectedHistoryItem(null);
   };
 
   const navLinks = [

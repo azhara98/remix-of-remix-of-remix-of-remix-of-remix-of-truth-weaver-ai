@@ -242,6 +242,14 @@ export const useNewsAnalysis = () => {
     error: null,
   });
 
+  const setResult = useCallback((result: AnalysisResult) => {
+    setState(prev => ({
+      ...prev,
+      result,
+      isAnalyzing: false,
+    }));
+  }, []);
+
   const initializeSteps = (): VerificationStep[] => [
     { id: "search", label: "Searching trusted news sources", status: "pending" },
     { id: "verify", label: "Verifying content across multiple outlets", status: "pending" },
@@ -348,5 +356,6 @@ export const useNewsAnalysis = () => {
     ...state,
     analyze,
     reset,
+    setResult,
   };
 };

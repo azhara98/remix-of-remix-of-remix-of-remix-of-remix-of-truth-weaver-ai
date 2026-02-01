@@ -1,32 +1,68 @@
 import { Button } from "@/components/ui/button";
 import { Search, BrainCircuit, Sparkles, ArrowRight, Clock, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
 import AnalyzeOptionsPopover from "./AnalyzeOptionsPopover";
 import VerificationProgress from "./VerificationProgress";
-import AnalysisResultCard from "./AnalysisResultCard";
+import FullReportSection from "./FullReportSection";
 import { useNewsAnalysis } from "@/hooks/useNewsAnalysis";
 import { useSearchHistory } from "@/contexts/SearchHistoryContext";
+import type { AnalysisResult } from "@/hooks/useNewsAnalysis";
 
 const HeroSection = () => {
-  const navigate = useNavigate();
   const [inputValue, setInputValue] = useState("");
-  const { isAnalyzing, steps, currentStep, result, analyze, reset } = useNewsAnalysis();
-  const { selectedQuery, setSelectedQuery, addToHistory } = useSearchHistory();
+  const [currentQuery, setCurrentQuery] = useState("");
+  const { isAnalyzing, steps, currentStep, result, analyze, reset, setResult } = useNewsAnalysis();
+  const { selectedHistoryItem, setSelectedHistoryItem, addToHistory, updateHistoryResult } = useSearchHistory();
+  const currentHistoryIdRef = useRef<string | null>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
 
-  // Auto-fill input when a history item is selected
+  // Load stored result when a history item is selected
   useEffect(() => {
-    if (selectedQuery) {
-      setInputValue(selectedQuery);
-      setSelectedQuery(null);
+    if (selectedHistoryItem) {
+      setCurrentQuery(selectedHistoryItem.query);
+      if (selectedHistoryItem.result) {
+        // Display stored result directly
+        setResult(selectedHistoryItem.result);
+      }
+      setSelectedHistoryItem(null);
     }
-  }, [selectedQuery, setSelectedQuery]);
+  }, [selectedHistoryItem, setSelectedHistoryItem, setResult]);
 
-  const handleAnalyze = () => {
+  // Scroll to results when they appear
+  useEffect(() => {
+    if (result && resultsRef.current) {
+      resultsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [result]);
+
+  // Update history with result when analysis completes
+  useEffect(() => {
+    if (result && currentHistoryIdRef.current) {
+      updateHistoryResult(currentHistoryIdRef.current, result);
+      currentHistoryIdRef.current = null;
+    }
+  }, [result, updateHistoryResult]);
+
+  const handleAnalyze = async () => {
     if (inputValue.trim()) {
-      addToHistory(inputValue);
-      analyze(inputValue);
+      setCurrentQuery(inputValue);
+      // Add to history first and store the ID
+      const historyId = addToHistory(inputValue);
+      if (historyId) {
+        currentHistoryIdRef.current = historyId;
+      }
+      await analyze(inputValue);
+    }
+  };
+
+  const handleRerun = async () => {
+    if (currentQuery.trim()) {
+      const historyId = addToHistory(currentQuery);
+      if (historyId) {
+        currentHistoryIdRef.current = historyId;
+      }
+      await analyze(currentQuery);
     }
   };
 
@@ -38,15 +74,12 @@ const HeroSection = () => {
 
   const handleClear = () => {
     setInputValue("");
+    setCurrentQuery("");
     reset();
   };
 
-  const handleViewDetails = () => {
-    navigate("/results", { state: { result } });
-  };
-
   return (
-    <section className="relative min-h-screen flex items-center justify-center pt-16 overflow-hidden">
+    <section className="relative min-h-screen flex flex-col pt-16 overflow-hidden">
       {/* Modern Gradient Background with AI Pattern */}
       <div className="absolute inset-0 z-0">
         {/* Base gradient */}
@@ -91,30 +124,10 @@ const HeroSection = () => {
             />
           ))}
         </div>
-        
-        {/* Bottom fade to content */}
-        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-background to-transparent" />
       </div>
 
-      {/* Floating Elements */}
-      <motion.div
-        className="absolute top-32 left-[10%] w-20 h-20 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl flex items-center justify-center"
-        animate={{ y: [0, -15, 0] }}
-        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-      >
-        <BrainCircuit className="w-8 h-8 text-secondary" />
-      </motion.div>
-
-      <motion.div
-        className="absolute bottom-32 right-[15%] w-16 h-16 rounded-xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl flex items-center justify-center"
-        animate={{ y: [0, 10, 0] }}
-        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-      >
-        <Sparkles className="w-6 h-6 text-accent" />
-      </motion.div>
-
-      {/* Content */}
-      <div className="relative z-10 container mx-auto px-4 text-center">
+      {/* Content - Input Section */}
+      <div className="relative z-10 container mx-auto px-4 text-center flex-shrink-0 py-12">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -129,7 +142,7 @@ const HeroSection = () => {
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 mb-8"
           >
             <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
-            <span className="text-sm font-medium text-white/80">
+            <span className="text-sm font-medium text-white/90">
               Powered by Advanced NLP Technology
             </span>
           </motion.div>
@@ -142,7 +155,7 @@ const HeroSection = () => {
             Before It Spreads
           </h1>
 
-          <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto mb-10">
+          <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto mb-10">
             Our AI-powered platform uses Natural Language Processing to analyze news articles,
             social media posts, and claims in real-time. Get instant credibility scores
             and detailed fact-checks.
@@ -202,24 +215,6 @@ const HeroSection = () => {
             )}
           </AnimatePresence>
 
-          {/* Verification Progress */}
-          <AnimatePresence>
-            {isAnalyzing && steps.length > 0 && (
-              <VerificationProgress steps={steps} currentStep={currentStep} />
-            )}
-          </AnimatePresence>
-
-          {/* Analysis Result */}
-          <AnimatePresence>
-            {result && (
-              <AnalysisResultCard
-                result={result}
-                onClear={handleClear}
-                onViewDetails={handleViewDetails}
-              />
-            )}
-          </AnimatePresence>
-
           {/* Cancel button during analysis */}
           <AnimatePresence>
             {isAnalyzing && (
@@ -227,13 +222,13 @@ const HeroSection = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="mt-4"
+                className="mb-4"
               >
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleClear}
-                  className="text-white/60 hover:text-white hover:bg-white/10"
+                  className="text-white/70 hover:text-white hover:bg-white/10"
                 >
                   <X className="w-4 h-4 mr-2" />
                   Cancel Analysis
@@ -261,14 +256,74 @@ const HeroSection = () => {
                     <div className="text-2xl md:text-3xl font-display font-bold text-white">
                       {stat.value}
                     </div>
-                    <div className="text-sm text-white/60">{stat.label}</div>
+                    <div className="text-sm text-white/70">{stat.label}</div>
                   </div>
                 ))}
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Floating Elements - only show when no result */}
+          {!result && (
+            <>
+              <motion.div
+                className="absolute top-32 left-[10%] w-20 h-20 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl flex items-center justify-center hidden lg:flex"
+                animate={{ y: [0, -15, 0] }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <BrainCircuit className="w-8 h-8 text-secondary" />
+              </motion.div>
+
+              <motion.div
+                className="absolute bottom-32 right-[15%] w-16 h-16 rounded-xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl flex items-center justify-center hidden lg:flex"
+                animate={{ y: [0, 10, 0] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+              >
+                <Sparkles className="w-6 h-6 text-accent" />
+              </motion.div>
+            </>
+          )}
         </motion.div>
       </div>
+
+      {/* Verification Progress Section */}
+      <AnimatePresence>
+        {isAnalyzing && steps.length > 0 && (
+          <div className="relative z-10 container mx-auto px-4">
+            <VerificationProgress steps={steps} currentStep={currentStep} />
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Full Report Results Section */}
+      <AnimatePresence>
+        {result && (
+          <motion.div
+            ref={resultsRef}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="relative z-10 bg-background pt-8 pb-16"
+          >
+            {/* Transition gradient */}
+            <div className="absolute inset-x-0 -top-16 h-16 bg-gradient-to-b from-transparent to-background" />
+            
+            <div className="container mx-auto px-4">
+              <FullReportSection
+                result={result}
+                query={currentQuery}
+                onClear={handleClear}
+                onRerun={handleRerun}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Bottom fade when showing input */}
+      {!result && (
+        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-background to-transparent z-0" />
+      )}
     </section>
   );
 };

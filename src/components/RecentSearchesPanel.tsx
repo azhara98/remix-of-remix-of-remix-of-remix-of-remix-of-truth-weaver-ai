@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Clock, History, ChevronDown, ExternalLink } from "lucide-react";
+import { Plus, Clock, History, ChevronRight, ExternalLink, RefreshCw, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -8,56 +8,17 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-
-interface SearchHistoryItem {
-  id: string;
-  query: string;
-  timestamp: Date;
-  type: "url" | "text";
-}
-
-// Mock history data - in production this would come from localStorage or backend
-const mockHistory: SearchHistoryItem[] = [
-  {
-    id: "1",
-    query: "https://news.example.com/breaking-story-2024",
-    timestamp: new Date(Date.now() - 1000 * 60 * 5), // 5 mins ago
-    type: "url",
-  },
-  {
-    id: "2",
-    query: "Government announces new climate policy measures for 2025",
-    timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 mins ago
-    type: "text",
-  },
-  {
-    id: "3",
-    query: "https://dailynews.com/tech-breakthrough",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-    type: "url",
-  },
-  {
-    id: "4",
-    query: "Scientists discover high water content in Mars samples",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
-    type: "text",
-  },
-  {
-    id: "5",
-    query: "https://worldreport.org/economy-update",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48), // 2 days ago
-    type: "url",
-  },
-];
+import { useSearchHistory } from "@/contexts/SearchHistoryContext";
+import type { SearchHistoryItem } from "@/contexts/SearchHistoryContext";
 
 interface RecentSearchesPanelProps {
-  onSelectHistory?: (query: string) => void;
+  onSelectHistory?: (item: SearchHistoryItem) => void;
   onNewProject?: () => void;
 }
 
 const RecentSearchesPanel = ({ onSelectHistory, onNewProject }: RecentSearchesPanelProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [history] = useState<SearchHistoryItem[]>(mockHistory);
+  const { history, clearHistory } = useSearchHistory();
 
   const formatTimestamp = (date: Date): string => {
     const now = new Date();
@@ -93,13 +54,28 @@ const RecentSearchesPanel = ({ onSelectHistory, onNewProject }: RecentSearchesPa
   };
 
   const handleSelectItem = (item: SearchHistoryItem) => {
-    onSelectHistory?.(item.query);
+    onSelectHistory?.(item);
     setIsOpen(false);
   };
 
   const handleNewProject = () => {
     onNewProject?.();
     setIsOpen(false);
+  };
+
+  const getVerdictIcon = (item: SearchHistoryItem) => {
+    if (!item.result) return null;
+    
+    switch (item.result.verdict) {
+      case "real":
+        return <CheckCircle className="w-3 h-3 text-emerald-500" />;
+      case "fake":
+        return <XCircle className="w-3 h-3 text-red-500" />;
+      case "misleading":
+        return <AlertTriangle className="w-3 h-3 text-amber-500" />;
+      default:
+        return null;
+    }
   };
 
   return (
@@ -127,7 +103,7 @@ const RecentSearchesPanel = ({ onSelectHistory, onNewProject }: RecentSearchesPa
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <History className="w-4 h-4 text-muted-foreground" />
-              <span className="font-medium text-sm">Recent Searches</span>
+              <span className="font-medium text-sm text-foreground">Recent Searches</span>
             </div>
             <Button
               variant="ghost"
@@ -146,7 +122,7 @@ const RecentSearchesPanel = ({ onSelectHistory, onNewProject }: RecentSearchesPa
             {history.length === 0 ? (
               <div className="p-6 text-center text-muted-foreground">
                 <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No recent searches</p>
+                <p className="text-sm font-medium">No recent searches</p>
                 <p className="text-xs mt-1">Your analysis history will appear here</p>
               </div>
             ) : (
@@ -169,14 +145,30 @@ const RecentSearchesPanel = ({ onSelectHistory, onNewProject }: RecentSearchesPa
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate group-hover:text-secondary transition-colors">
-                          {shortenQuery(item.query)}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {formatTimestamp(item.timestamp)}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-foreground truncate group-hover:text-secondary transition-colors">
+                            {shortenQuery(item.query)}
+                          </p>
+                          {getVerdictIcon(item)}
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className="text-xs text-muted-foreground">
+                            {formatTimestamp(item.timestamp)}
+                          </p>
+                          {item.result && (
+                            <span className="text-xs text-secondary font-medium">
+                              • {item.result.credibilityScore}% credibility
+                            </span>
+                          )}
+                        </div>
+                        {!item.result && (
+                          <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                            <RefreshCw className="w-3 h-3" />
+                            <span>Click to re-analyze</span>
+                          </div>
+                        )}
                       </div>
-                      <ChevronDown className="w-4 h-4 text-muted-foreground rotate-[-90deg] opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                   </motion.button>
                 ))}
@@ -190,6 +182,7 @@ const RecentSearchesPanel = ({ onSelectHistory, onNewProject }: RecentSearchesPa
             <Button
               variant="ghost"
               size="sm"
+              onClick={clearHistory}
               className="w-full text-xs text-muted-foreground hover:text-foreground"
             >
               Clear History
