@@ -1,5 +1,7 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
 import type { AnalysisResult } from "@/hooks/useNewsAnalysis";
+
+const STORAGE_KEY = "truthlens_search_history";
 
 export interface SearchHistoryItem {
   id: string;
@@ -7,6 +9,10 @@ export interface SearchHistoryItem {
   timestamp: Date;
   type: "url" | "text";
   result?: AnalysisResult;
+}
+
+interface StoredHistoryItem extends Omit<SearchHistoryItem, 'timestamp'> {
+  timestamp: string;
 }
 
 interface SearchHistoryContextType {
@@ -21,12 +27,41 @@ interface SearchHistoryContextType {
 
 const SearchHistoryContext = createContext<SearchHistoryContextType | undefined>(undefined);
 
-// No mock history - start fresh
-const initialHistory: SearchHistoryItem[] = [];
+const loadHistoryFromStorage = (): SearchHistoryItem[] => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return [];
+    const parsed: StoredHistoryItem[] = JSON.parse(stored);
+    return parsed.map(item => ({
+      ...item,
+      timestamp: new Date(item.timestamp)
+    }));
+  } catch (error) {
+    console.error("Failed to load search history:", error);
+    return [];
+  }
+};
+
+const saveHistoryToStorage = (history: SearchHistoryItem[]) => {
+  try {
+    const toStore: StoredHistoryItem[] = history.map(item => ({
+      ...item,
+      timestamp: item.timestamp.toISOString()
+    }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toStore));
+  } catch (error) {
+    console.error("Failed to save search history:", error);
+  }
+};
 
 export const SearchHistoryProvider = ({ children }: { children: ReactNode }) => {
-  const [history, setHistory] = useState<SearchHistoryItem[]>(initialHistory);
+  const [history, setHistory] = useState<SearchHistoryItem[]>(() => loadHistoryFromStorage());
   const [selectedHistoryItem, setSelectedHistoryItem] = useState<SearchHistoryItem | null>(null);
+
+  // Persist history to localStorage whenever it changes
+  useEffect(() => {
+    saveHistoryToStorage(history);
+  }, [history]);
 
   const addToHistory = useCallback((query: string, result?: AnalysisResult): string => {
     const isUrl = query.startsWith("http://") || query.startsWith("https://");
