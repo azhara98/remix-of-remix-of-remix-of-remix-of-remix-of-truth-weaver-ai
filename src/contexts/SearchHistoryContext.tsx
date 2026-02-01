@@ -1,78 +1,74 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import type { AnalysisResult } from "@/hooks/useNewsAnalysis";
 
 export interface SearchHistoryItem {
   id: string;
   query: string;
   timestamp: Date;
   type: "url" | "text";
+  result?: AnalysisResult;
 }
 
 interface SearchHistoryContextType {
   history: SearchHistoryItem[];
-  addToHistory: (query: string) => void;
+  addToHistory: (query: string, result?: AnalysisResult) => string;
+  updateHistoryResult: (id: string, result: AnalysisResult) => void;
   clearHistory: () => void;
-  selectedQuery: string | null;
-  setSelectedQuery: (query: string | null) => void;
+  selectedHistoryItem: SearchHistoryItem | null;
+  setSelectedHistoryItem: (item: SearchHistoryItem | null) => void;
+  getHistoryItemById: (id: string) => SearchHistoryItem | undefined;
 }
 
 const SearchHistoryContext = createContext<SearchHistoryContextType | undefined>(undefined);
 
-// Mock initial history
-const initialHistory: SearchHistoryItem[] = [
-  {
-    id: "1",
-    query: "https://news.example.com/breaking-story-2024",
-    timestamp: new Date(Date.now() - 1000 * 60 * 5),
-    type: "url",
-  },
-  {
-    id: "2",
-    query: "Government announces new climate policy measures for 2025",
-    timestamp: new Date(Date.now() - 1000 * 60 * 30),
-    type: "text",
-  },
-  {
-    id: "3",
-    query: "https://dailynews.com/tech-breakthrough",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
-    type: "url",
-  },
-  {
-    id: "4",
-    query: "Scientists discover high water content in Mars samples",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24),
-    type: "text",
-  },
-  {
-    id: "5",
-    query: "https://worldreport.org/economy-update",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48),
-    type: "url",
-  },
-];
+// No mock history - start fresh
+const initialHistory: SearchHistoryItem[] = [];
 
 export const SearchHistoryProvider = ({ children }: { children: ReactNode }) => {
   const [history, setHistory] = useState<SearchHistoryItem[]>(initialHistory);
-  const [selectedQuery, setSelectedQuery] = useState<string | null>(null);
+  const [selectedHistoryItem, setSelectedHistoryItem] = useState<SearchHistoryItem | null>(null);
 
-  const addToHistory = useCallback((query: string) => {
+  const addToHistory = useCallback((query: string, result?: AnalysisResult): string => {
     const isUrl = query.startsWith("http://") || query.startsWith("https://");
+    const id = Date.now().toString();
     const newItem: SearchHistoryItem = {
-      id: Date.now().toString(),
+      id,
       query,
       timestamp: new Date(),
       type: isUrl ? "url" : "text",
+      result,
     };
     setHistory((prev) => [newItem, ...prev.slice(0, 9)]); // Keep last 10 items
+    return id;
+  }, []);
+
+  const updateHistoryResult = useCallback((id: string, result: AnalysisResult) => {
+    setHistory((prev) => 
+      prev.map((item) => 
+        item.id === id ? { ...item, result } : item
+      )
+    );
   }, []);
 
   const clearHistory = useCallback(() => {
     setHistory([]);
   }, []);
 
+  const getHistoryItemById = useCallback((id: string) => {
+    return history.find((item) => item.id === id);
+  }, [history]);
+
   return (
     <SearchHistoryContext.Provider
-      value={{ history, addToHistory, clearHistory, selectedQuery, setSelectedQuery }}
+      value={{ 
+        history, 
+        addToHistory, 
+        updateHistoryResult,
+        clearHistory, 
+        selectedHistoryItem, 
+        setSelectedHistoryItem,
+        getHistoryItemById
+      }}
     >
       {children}
     </SearchHistoryContext.Provider>
