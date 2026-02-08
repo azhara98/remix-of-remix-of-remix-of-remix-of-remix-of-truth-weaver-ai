@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -8,10 +8,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Phone, Lock, Eye, EyeOff, ArrowLeft, UserPlus, LogIn } from "lucide-react";
 import Logo from "@/components/Logo";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isAuthenticated, login } = useAuth();
+  
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/app");
+    }
+  }, [isAuthenticated, navigate]);
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -68,6 +77,9 @@ const Auth = () => {
     // Simulate authentication
     await new Promise(resolve => setTimeout(resolve, 1500));
     
+    // Set authenticated state
+    login();
+    
     toast({
       title: isSignUp ? "Account Created!" : "Welcome Back!",
       description: isSignUp 
@@ -76,7 +88,7 @@ const Auth = () => {
     });
     
     setIsLoading(false);
-    navigate("/");
+    navigate("/app");
   };
 
   return (
