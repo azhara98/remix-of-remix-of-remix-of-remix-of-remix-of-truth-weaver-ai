@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { 
   ArrowLeft, Globe, Bell, Palette, Moon, Sun, 
-  Check, Languages
+  Check, Languages, LogOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
@@ -19,10 +20,20 @@ type Theme = "light" | "dark";
 const Settings = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { logout } = useAuth();
   
   const [language, setLanguage] = useState<Language>("english");
   const [notifications, setNotifications] = useState(true);
   const [theme, setTheme] = useState<Theme>("light");
+
+  const handleLogout = () => {
+    logout();
+    toast({
+      title: "Logged Out",
+      description: "You have been successfully logged out.",
+    });
+    navigate("/");
+  };
 
   useEffect(() => {
     // Check initial theme
@@ -236,6 +247,33 @@ const Settings = () => {
                       <div className="text-sm text-muted-foreground">Easy on the eyes</div>
                     </button>
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Logout */}
+              <Card className="border-border/50 shadow-soft">
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-destructive/10">
+                      <LogOut className="w-5 h-5 text-destructive" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Account</CardTitle>
+                      <CardDescription>
+                        Sign out of your account
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Button
+                    variant="destructive"
+                    onClick={handleLogout}
+                    className="w-full"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Log Out
+                  </Button>
                 </CardContent>
               </Card>
             </div>
