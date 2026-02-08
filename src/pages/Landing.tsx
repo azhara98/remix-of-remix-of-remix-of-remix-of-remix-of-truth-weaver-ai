@@ -2,7 +2,6 @@ import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/AuthContext";
 import Logo from "@/components/Logo";
 import RealTimeNews from "@/components/RealTimeNews";
 import HowItWorks from "@/components/HowItWorks";
@@ -14,22 +13,6 @@ import heroBg from "@/assets/hero-bg.jpg";
 
 const Landing = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading } = useAuth();
-
-  // Redirect to main app if already authenticated
-  useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      navigate("/app");
-    }
-  }, [isAuthenticated, isLoading, navigate]);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-secondary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background">

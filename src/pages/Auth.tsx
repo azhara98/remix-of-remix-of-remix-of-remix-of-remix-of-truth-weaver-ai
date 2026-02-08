@@ -18,7 +18,7 @@ const Auth = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/app");
+      navigate("/analyze");
     }
   }, [isAuthenticated, navigate]);
   const [isSignUp, setIsSignUp] = useState(false);
@@ -88,7 +88,7 @@ const Auth = () => {
     });
     
     setIsLoading(false);
-    navigate("/app");
+    navigate("/analyze");
   };
 
   return (
