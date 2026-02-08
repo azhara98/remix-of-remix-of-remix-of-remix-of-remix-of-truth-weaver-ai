@@ -12,7 +12,7 @@ const MainApp = () => {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      navigate("/");
+      navigate("/auth");
     }
   }, [isAuthenticated, isLoading, navigate]);
 
