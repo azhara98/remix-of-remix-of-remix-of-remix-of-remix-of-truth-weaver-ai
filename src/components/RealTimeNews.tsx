@@ -2,12 +2,11 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { 
   Newspaper, Building2, Trophy, Film, TrendingUp, Heart, 
-  CheckCircle, Loader2, ExternalLink 
+  ExternalLink 
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
 
 type Category = "all" | "politics" | "sports" | "entertainment" | "economy" | "health";
 
@@ -73,31 +72,10 @@ const newsItems = [
 
 const RealTimeNews = () => {
   const [activeCategory, setActiveCategory] = useState<Category>("all");
-  const [checkingId, setCheckingId] = useState<number | null>(null);
-  const [verifiedItems, setVerifiedItems] = useState<Record<number, boolean>>({});
-  const { toast } = useToast();
 
   const filteredNews = activeCategory === "all" 
     ? newsItems 
     : newsItems.filter(item => item.category === activeCategory);
-
-  const handleCheckCredibility = async (id: number) => {
-    setCheckingId(id);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const isCredible = Math.random() > 0.3; // 70% chance of being credible for demo
-    setVerifiedItems(prev => ({ ...prev, [id]: isCredible }));
-    setCheckingId(null);
-    
-    toast({
-      title: isCredible ? "Credible Source" : "Needs Verification",
-      description: isCredible 
-        ? "This news appears to be from a reliable source." 
-        : "This news requires further fact-checking.",
-    });
-  };
 
   const getCategoryIcon = (categoryId: string) => {
     const category = categories.find(c => c.id === categoryId);
@@ -142,12 +120,9 @@ const RealTimeNews = () => {
           ))}
         </div>
 
-        {/* News Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredNews.map((item, index) => {
             const CategoryIcon = getCategoryIcon(item.category);
-            const isVerified = verifiedItems[item.id];
-            const isChecking = checkingId === item.id;
 
             return (
               <motion.div
@@ -164,14 +139,6 @@ const RealTimeNews = () => {
                         <CategoryIcon className="w-3 h-3" />
                         {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
                       </Badge>
-                      {isVerified !== undefined && (
-                        <Badge 
-                          variant={isVerified ? "default" : "destructive"} 
-                          className="text-xs"
-                        >
-                          {isVerified ? "Credible" : "Unverified"}
-                        </Badge>
-                      )}
                     </div>
                     <CardTitle className="text-lg leading-tight group-hover:text-secondary transition-colors">
                       {item.title}
@@ -182,33 +149,10 @@ const RealTimeNews = () => {
                       <span>{item.source}</span>
                       <span>{item.time}</span>
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="hero"
-                        size="sm"
-                        className="flex-1 gap-2"
-                        onClick={() => handleCheckCredibility(item.id)}
-                        disabled={isChecking || isVerified !== undefined}
-                      >
-                        {isChecking ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            Checking...
-                          </>
-                        ) : isVerified !== undefined ? (
-                          <>
-                            <CheckCircle className="w-4 h-4" />
-                            Checked
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle className="w-4 h-4" />
-                            Check Credibility
-                          </>
-                        )}
-                      </Button>
-                      <Button variant="outline" size="icon" className="shrink-0">
+                    <div className="flex justify-end">
+                      <Button variant="outline" size="sm" className="gap-2">
                         <ExternalLink className="w-4 h-4" />
+                        Read More
                       </Button>
                     </div>
                   </CardContent>

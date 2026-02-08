@@ -13,9 +13,6 @@ const Header = () => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { setSelectedHistoryItem } = useSearchHistory();
-  
-  // Simulate logged in state - in production this would come from auth context
-  const [isLoggedIn] = useState(false);
 
   const handleHistorySelect = (item: SearchHistoryItem) => {
     // Navigate to home and set the selected history item (with stored result)
@@ -84,23 +81,6 @@ const Header = () => {
             >
               <Settings className="w-5 h-5" />
             </Button>
-            {isLoggedIn ? (
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => navigate("/settings")}
-              >
-                My Account
-              </Button>
-            ) : (
-              <Button 
-                variant="hero" 
-                size="sm"
-                onClick={() => navigate("/auth")}
-              >
-                Get Started
-              </Button>
-            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -150,31 +130,6 @@ const Header = () => {
                   {link.label}
                 </button>
               ))}
-              <div className="flex flex-col gap-2 pt-4 border-t border-border/50">
-                {isLoggedIn ? (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => {
-                      navigate("/settings");
-                      setMobileMenuOpen(false);
-                    }}
-                  >
-                    My Account
-                  </Button>
-                ) : (
-                  <Button 
-                    variant="hero" 
-                    size="sm"
-                    onClick={() => {
-                      navigate("/auth");
-                      setMobileMenuOpen(false);
-                    }}
-                  >
-                    Get Started
-                  </Button>
-                )}
-              </div>
             </div>
           </motion.div>
         )}
