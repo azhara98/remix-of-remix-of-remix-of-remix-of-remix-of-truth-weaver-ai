@@ -36,16 +36,8 @@ const Header = () => {
   ];
 
   const handleNavClick = (href: string) => {
-    if (location.pathname !== "/") {
-      navigate("/");
-      setTimeout(() => {
-        const element = document.querySelector(href);
-        element?.scrollIntoView({ behavior: "smooth" });
-      }, 100);
-    } else {
-      const element = document.querySelector(href);
-      element?.scrollIntoView({ behavior: "smooth" });
-    }
+    const element = document.querySelector(href);
+    element?.scrollIntoView({ behavior: "smooth" });
     setMobileMenuOpen(false);
   };
 
