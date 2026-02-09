@@ -1,6 +1,10 @@
 import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
 import DashboardMetrics from "@/components/DashboardMetrics";
+import RealTimeNews from "@/components/RealTimeNews";
+import HowItWorks from "@/components/HowItWorks";
+import Features from "@/components/Features";
+import AboutSection from "@/components/AboutSection";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
@@ -30,6 +34,10 @@ const MainApp = () => {
       <main>
         <HeroSection />
         <DashboardMetrics />
+        <RealTimeNews />
+        <HowItWorks />
+        <Features />
+        <AboutSection />
       </main>
       <Footer />
     </div>
