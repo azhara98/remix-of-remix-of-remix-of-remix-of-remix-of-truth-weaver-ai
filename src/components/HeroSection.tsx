@@ -13,21 +13,48 @@ const HeroSection = () => {
   const [inputValue, setInputValue] = useState("");
   const [currentQuery, setCurrentQuery] = useState("");
   const { isAnalyzing, steps, currentStep, result, analyze, reset, setResult } = useNewsAnalysis();
-  const { selectedHistoryItem, setSelectedHistoryItem, addToHistory, updateHistoryResult } = useSearchHistory();
+  const { selectedHistoryItem, setSelectedHistoryItem, addToHistory, updateHistoryResult, newAnalysisRequested, setNewAnalysisRequested } = useSearchHistory();
   const currentHistoryIdRef = useRef<string | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const heroRef = useRef<HTMLElement>(null);
 
-  // Load stored result when a history item is selected
+  // Handle "New Analysis" request from header
+  useEffect(() => {
+    if (newAnalysisRequested) {
+      setInputValue("");
+      setCurrentQuery("");
+      reset();
+      setNewAnalysisRequested(false);
+      // Scroll to hero and focus input
+      setTimeout(() => {
+        heroRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [newAnalysisRequested, setNewAnalysisRequested, reset]);
+
+  // Load stored result or auto-trigger analysis when a history item is selected
   useEffect(() => {
     if (selectedHistoryItem) {
-      setCurrentQuery(selectedHistoryItem.query);
+      const query = selectedHistoryItem.query;
+      setCurrentQuery(query);
+      setInputValue(query);
+      
       if (selectedHistoryItem.result) {
         // Display stored result directly
         setResult(selectedHistoryItem.result);
+      } else {
+        // No cached result — auto-trigger analysis
+        const historyId = addToHistory(query);
+        if (historyId) {
+          currentHistoryIdRef.current = historyId;
+        }
+        analyze(query);
       }
       setSelectedHistoryItem(null);
     }
-  }, [selectedHistoryItem, setSelectedHistoryItem, setResult]);
+  }, [selectedHistoryItem, setSelectedHistoryItem, setResult, analyze, addToHistory]);
 
   // Scroll to results when they appear
   useEffect(() => {
@@ -79,7 +106,7 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative min-h-screen flex flex-col pt-16 overflow-hidden">
+    <section ref={heroRef} className="relative min-h-screen flex flex-col pt-16 overflow-hidden">
       {/* Modern Gradient Background with AI Pattern */}
       <div className="absolute inset-0 z-0">
         {/* Base gradient */}
@@ -181,6 +208,7 @@ const HeroSection = () => {
                       <div className="flex-1 relative">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                         <input
+                          ref={inputRef}
                           type="text"
                           placeholder="Paste a news article URL or enter text to analyze..."
                           value={inputValue}

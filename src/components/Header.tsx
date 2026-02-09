@@ -12,21 +12,20 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { setSelectedHistoryItem } = useSearchHistory();
+  const { setSelectedHistoryItem, setNewAnalysisRequested } = useSearchHistory();
 
   const handleHistorySelect = (item: SearchHistoryItem) => {
-    // Navigate to home and set the selected history item (with stored result)
-    if (location.pathname !== "/") {
-      navigate("/");
+    if (location.pathname !== "/analyze") {
+      navigate("/analyze");
     }
     setSelectedHistoryItem(item);
   };
 
   const handleNewProject = () => {
-    if (location.pathname !== "/") {
-      navigate("/");
+    if (location.pathname !== "/analyze") {
+      navigate("/analyze");
     }
-    setSelectedHistoryItem(null);
+    setNewAnalysisRequested(true);
   };
 
   const navLinks = [

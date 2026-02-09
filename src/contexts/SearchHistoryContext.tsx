@@ -23,6 +23,8 @@ interface SearchHistoryContextType {
   selectedHistoryItem: SearchHistoryItem | null;
   setSelectedHistoryItem: (item: SearchHistoryItem | null) => void;
   getHistoryItemById: (id: string) => SearchHistoryItem | undefined;
+  newAnalysisRequested: boolean;
+  setNewAnalysisRequested: (val: boolean) => void;
 }
 
 const SearchHistoryContext = createContext<SearchHistoryContextType | undefined>(undefined);
@@ -57,6 +59,7 @@ const saveHistoryToStorage = (history: SearchHistoryItem[]) => {
 export const SearchHistoryProvider = ({ children }: { children: ReactNode }) => {
   const [history, setHistory] = useState<SearchHistoryItem[]>(() => loadHistoryFromStorage());
   const [selectedHistoryItem, setSelectedHistoryItem] = useState<SearchHistoryItem | null>(null);
+  const [newAnalysisRequested, setNewAnalysisRequested] = useState(false);
 
   // Persist history to localStorage whenever it changes
   useEffect(() => {
@@ -102,7 +105,9 @@ export const SearchHistoryProvider = ({ children }: { children: ReactNode }) => 
         clearHistory, 
         selectedHistoryItem, 
         setSelectedHistoryItem,
-        getHistoryItemById
+        getHistoryItemById,
+        newAnalysisRequested,
+        setNewAnalysisRequested,
       }}
     >
       {children}
